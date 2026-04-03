@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT Dashboard Luxe</title>
+    <title>Smart IoT Dashboard - Luxe Edition</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; }
+        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 15px; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .status-badge { font-size: 0.9rem; padding: 6px 15px; border-radius: 20px; }
-        .btn-luxe { border-radius: 10px; transition: 0.3s; }
-        iframe { border-radius: 15px; width: 100%; background: white; }
+        .text-primary { color: #0d6efd !important; }
+        .text-info { color: #0dcaf0 !important; }
+        .text-warning { color: #ffc107 !important; }
     </style>
 </head>
 <body class="p-4">
     <div class="container">
         <header class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="mb-0 text-white">Smart IoT Dashboard</h2>
-                <p class="text-muted">ESP32 + Firebase Realtime Monitoring</p>
+                <h2 class="mb-0 text-white fw-bold">IoT Dashboard Monitoring</h2>
+                <p class="text-muted">Real-time Data from ESP32</p>
             </div>
             <span id="statusLog" class="badge bg-danger status-badge">LOGGING: OFF</span>
         </header>
@@ -27,20 +29,20 @@
         <div class="row g-3 mb-4 text-center">
             <div class="col-md-4">
                 <div class="card p-4">
-                    <h6 class="text-uppercase text-muted">Temperature</h6>
-                    <h1 id="tempVal" class="display-4 fw-bold text-primary">0°C</h1>
+                    <h6 class="text-uppercase text-muted small">Temperature</h6>
+                    <h1 id="tempVal" class="display-4 fw-bold text-primary">--°C</h1>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card p-4">
-                    <h6 class="text-uppercase text-muted">Humidity</h6>
-                    <h1 id="humiVal" class="display-4 fw-bold text-info">0%</h1>
+                    <h6 class="text-uppercase text-muted small">Humidity</h6>
+                    <h1 id="humiVal" class="display-4 fw-bold text-info">--%</h1>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card p-4">
-                    <h6 class="text-uppercase text-muted">Light (LDR)</h6>
-                    <h1 id="ldrVal" class="display-4 fw-bold text-warning">0</h1>
+                    <h6 class="text-uppercase text-muted small">Light (LDR)</h6>
+                    <h1 id="ldrVal" class="display-4 fw-bold text-warning">--</h1>
                 </div>
             </div>
         </div>
@@ -54,22 +56,17 @@
             </div>
             <div class="col-md-4">
                 <div class="card p-4 h-100">
-                    <h5 class="mb-4">Control System</h5>
+                    <h5 class="mb-4">Remote Control</h5>
                     <div class="d-grid gap-3">
-                        <button onclick="setStatus(true)" class="btn btn-success btn-lg btn-luxe">START LOGGING</button>
-                        <button onclick="setStatus(false)" class="btn btn-danger btn-lg btn-luxe">STOP LOGGING</button>
+                        <button onclick="setStatus(true)" class="btn btn-success btn-lg fw-bold">START LOGGING</button>
+                        <button onclick="setStatus(false)" class="btn btn-danger btn-lg fw-bold">STOP LOGGING</button>
                         <hr class="border-secondary">
-                        <label class="small text-muted">Reporting Interval (ms)</label>
-                        <input type="number" id="intInput" class="form-control bg-dark text-white border-secondary" placeholder="e.g. 5000">
-                        <button onclick="changeInterval()" class="btn btn-outline-primary btn-luxe">Update Interval</button>
+                        <label class="small text-muted">Interval Update (ms)</label>
+                        <input type="number" id="intInput" class="form-control bg-dark text-white border-secondary" placeholder="Contoh: 5000">
+                        <button onclick="changeInterval()" class="btn btn-outline-primary">Update Interval</button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="card p-3">
-            <h5 class="mb-3">History Log (Google Sheets)</h5>
-            <iframe src="SILAHKAN_PASTE_URL_PUBLISH_GOOGLE_SHEET_DISINI" height="400"></iframe>
         </div>
     </div>
 
@@ -77,6 +74,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
+        // --- KONFIGURASI FIREBASE ANDA ---
         const firebaseConfig = {
             apiKey: "AIzaSyCINppULfygb28LkPePah3KhAvwGXUTyOk",
             authDomain: "dashboard-iot-a0aa3.firebaseapp.com",
@@ -91,7 +89,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Listen data sensor
+        // 1. Ambil Data Sensor dari Firebase
         db.ref('monitoring').on('value', (snap) => {
             const data = snap.val();
             if(data) {
@@ -102,7 +100,7 @@
             }
         });
 
-        // Listen status logging
+        // 2. Ambil Status Logging
         db.ref('settings/logging').on('value', (snap) => {
             const status = snap.val();
             const badge = document.getElementById('statusLog');
@@ -110,18 +108,22 @@
             badge.className = status ? "badge bg-success status-badge" : "badge bg-danger status-badge";
         });
 
-        function setStatus(val) { db.ref('settings').update({logging: val}); }
+        // 3. Fungsi Tombol Kontrol
+        function setStatus(val) { 
+            db.ref('settings').update({logging: val}); 
+        }
+
         function changeInterval() {
             const val = parseInt(document.getElementById('intInput').value);
             if(val >= 1000) {
                 db.ref('settings').update({interval: val});
-                alert("Interval updated to " + val + "ms");
+                alert("Interval diperbarui ke " + val + "ms");
             } else {
-                alert("Minimal interval 1000ms (1 detik)");
+                alert("Minimal 1000ms!");
             }
         }
 
-        // Chart Config
+        // 4. Konfigurasi Grafik (Chart.js)
         const ctx = document.getElementById('myChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
@@ -136,11 +138,17 @@
                     tension: 0.4
                 }]
             },
-            options: { responsive: true, scales: { y: { beginAtZero: false }, x: { display: false } } }
+            options: { 
+                responsive: true, 
+                scales: { 
+                    y: { beginAtZero: false }, 
+                    x: { display: false } 
+                } 
+            }
         });
 
         function updateChart(temp) {
-            if(chart.data.labels.length > 15) {
+            if(chart.data.labels.length > 10) {
                 chart.data.labels.shift();
                 chart.data.datasets[0].data.shift();
             }
