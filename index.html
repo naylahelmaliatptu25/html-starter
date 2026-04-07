@@ -1,148 +1,172 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT Dashboard Luxe</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>SMART IOT MONITOR - DASHBOARD</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
-        .status-badge { font-size: 0.9rem; padding: 6px 15px; border-radius: 20px; }
-        .btn-luxe { border-radius: 10px; transition: 0.3s; font-weight: bold; }
-        h1 { font-size: 3rem; }
+        body { background: #f4f7f6; color: #333; font-family: 'Segoe UI', sans-serif; }
+        .card-custom { background: white; border: none; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .value-text { font-size: 2.5rem; font-weight: bold; color: #2c3e50; }
+        .label-title { font-size: 0.8rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .chart-container { height: 250px; }
+        .btn-control { border-radius: 8px; font-weight: bold; padding: 10px; }
     </style>
 </head>
-<body class="p-4">
-    <div class="container">
-        <header class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="mb-0 text-white">Smart IoT Dashboard</h2>
-                <p class="text-muted small">Real-time Monitoring from ESP32</p>
-            </div>
-            <span id="statusLog" class="badge bg-danger status-badge">LOGGING: OFF</span>
-        </header>
+<body>
 
-        <div class="row text-center">
-            <div class="col-md-4">
-                <div class="card p-4">
-                    <h6 class="text-uppercase text-muted">Temperature</h6>
-                    <h1 id="tempVal" class="text-primary">--°C</h1>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card p-4">
-                    <h6 class="text-uppercase text-muted">Humidity</h6>
-                    <h1 id="humiVal" class="text-info">--%</h1>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card p-4">
-                    <h6 class="text-uppercase text-muted">Light (LDR)</h6>
-                    <h1 id="ldrVal" class="text-warning">--</h1>
-                </div>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Smart IoT Dashboard</h3>
+            <span id="log-status" class="badge bg-secondary">LOADING STATUS...</span>
+        </div>
+        <a href="https://docs.google.com/spreadsheets/d/18Ncn_4Ho95CinQftl4BWFaN63T_XFtRorVF4UGSa8vE/edit?usp=sharing" target="_blank" class="btn btn-outline-success btn-sm">Buka Spreadsheet ↗</a>
+    </div>
+
+    <div class="row text-center">
+        <div class="col-md-4">
+            <div class="card-custom">
+                <div class="label-title">Temperature</div>
+                <div class="value-text"><span id="temp">0</span>°C</div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card p-3 h-100">
-                    <h5 class="mb-3">Live Temperature Chart</h5>
-                    <canvas id="myChart"></canvas>
-                </div>
+        <div class="col-md-4">
+            <div class="card-custom">
+                <div class="label-title">Humidity</div>
+                <div class="value-text"><span id="hum">0</span>%</div>
             </div>
-            <div class="col-md-4">
-                <div class="card p-4 h-100">
-                    <h5 class="mb-4">System Control</h5>
-                    <div class="d-grid gap-3">
-                        <button onclick="setStatus(true)" class="btn btn-success btn-lg btn-luxe">START LOGGING</button>
-                        <button onclick="setStatus(false)" class="btn btn-danger btn-lg btn-luxe">STOP LOGGING</button>
-                        <hr class="border-secondary">
-                        <p class="small text-muted mb-1">Set Update Interval (ms)</p>
-                        <input type="number" id="intInput" class="form-control bg-dark text-white border-secondary mb-2" placeholder="e.g. 5000">
-                        <button onclick="changeInterval()" class="btn btn-outline-primary btn-luxe">Update Interval</button>
-                    </div>
-                </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-custom">
+                <div class="label-title">Intensitas Cahaya</div>
+                <div class="value-text"><span id="lux">0</span> lx</div>
             </div>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card-custom">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Kontrol Sistem</h6>
+                <div class="d-grid gap-2 mb-3">
+                    <button class="btn btn-success btn-control" onclick="updateControl('start')">START LOGGING</button>
+                    <button class="btn btn-danger btn-control" onclick="updateControl('stop')">STOP LOGGING</button>
+                    <button class="btn btn-outline-secondary btn-sm mt-2" onclick="resetLocalLog()">Reset Histori Lokal</button>
+                </div>
+                <div class="mt-4">
+                    <label class="label-title">Set Interval (detik):</label>
+                    <div class="input-group">
+                        <input type="number" id="inputInterval" class="form-control" placeholder="10">
+                        <button class="btn btn-dark" onclick="setIntervalFirebase()">SET</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <script>
-        // KONFIGURASI FIREBASE ASLI MILIKMU
-        const firebaseConfig = {
-            apiKey: "AIzaSyCINppULfygb28LkPePah3KhAvwGXUTyOk",
-            authDomain: "dashboard-iot-a0aa3.firebaseapp.com",
-            databaseURL: "https://dashboard-iot-a0aa3-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "dashboard-iot-a0aa3",
-            storageBucket: "dashboard-iot-a0aa3.firebasestorage.app",
-            messagingSenderId: "934627997292",
-            appId: "1:934627997292:web:0f1144dac6b3ab65494a49",
-            measurementId: "G-TTH8YLT04P"
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        <div class="col-md-8">
+            <div class="card-custom">
+                <h6 class="fw-bold mb-3">Grafik Suhu & Kelembapan</h6>
+                <div class="chart-container"><canvas id="chartTH"></canvas></div>
+            </div>
+            <div class="card-custom">
+                <h6 class="fw-bold mb-3">Grafik Intensitas Cahaya</h6>
+                <div class="chart-container"><canvas id="chartLux"></canvas></div>
+            </div>
+        </div>
+    </div>
 
-        // 1. MENDENGARKAN DATA DARI ESP32 (MONITORING)
-        db.ref('monitoring').on('value', (snap) => {
-            const data = snap.val();
-            if(data) {
-                document.getElementById('tempVal').innerText = (data.suhu || 0) + "°C";
-                document.getElementById('humiVal').innerText = (data.kelembapan || 0) + "%";
-                document.getElementById('ldrVal').innerText = data.cahaya || 0;
-                updateChart(data.suhu);
-            }
-        });
+    <div class="card-custom mt-3">
+        <h6 class="fw-bold mb-3">Real-time Local History (Last 15 Data)</h6>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>WAKTU</th>
+                        <th>SUHU (°C)</th>
+                        <th>HUM (%)</th>
+                        <th>CAHAYA (lx)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-        // 2. MENDENGARKAN STATUS LOGGING DARI SETTINGS
-        db.ref('settings/logging').on('value', (snap) => {
-            const status = snap.val();
-            const badge = document.getElementById('statusLog');
-            badge.innerText = status ? "LOGGING: ON" : "LOGGING: OFF";
-            badge.className = status ? "badge bg-success status-badge" : "badge bg-danger status-badge";
-        });
+<script>
+    // 1. FIREBASE CONFIG MILIKMU
+    const firebaseConfig = { databaseURL: "https://dashboard-iot-a0aa3-default-rtdb.asia-southeast1.firebasedatabase.app" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        // 3. FUNGSI TOMBOL
-        function setStatus(val) { db.ref('settings').update({logging: val}); }
-        function changeInterval() {
-            const val = parseInt(document.getElementById('intInput').value);
-            if(val >= 1000) {
-                db.ref('settings').update({interval: val});
-                alert("Interval Updated!");
-            } else { alert("Min 1000ms!"); }
+    // 2. CHART CONFIG
+    const chartOptions = { responsive: true, maintainAspectRatio: false };
+    
+    const ctxTH = document.getElementById('chartTH').getContext('2d');
+    const chartTH = new Chart(ctxTH, {
+        type: 'line',
+        data: { labels: [], datasets: [
+            { label: 'Suhu', borderColor: '#e74c3c', data: [], tension: 0.3 },
+            { label: 'Hum', borderColor: '#3498db', data: [], tension: 0.3 }
+        ]},
+        options: chartOptions
+    });
+
+    const ctxLux = document.getElementById('chartLux').getContext('2d');
+    const chartLux = new Chart(ctxLux, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Cahaya (lx)', borderColor: '#f1c40f', data: [], tension: 0.3, fill: true, backgroundColor: 'rgba(241, 196, 15, 0.1)' }]},
+        options: chartOptions
+    });
+
+    // 3. LISTEN FIREBASE
+    db.ref("monitoring").on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            document.getElementById("temp").innerText = data.suhu || 0;
+            document.getElementById("hum").innerText = data.kelembapan || 0;
+            document.getElementById("lux").innerText = data.cahaya || 0;
+
+            const logStatus = document.getElementById("log-status");
+            logStatus.innerText = "SISTEM: " + (data.control || "STOP").toUpperCase();
+            logStatus.className = data.control === "start" ? "badge bg-success" : "badge bg-danger";
+
+            const timeNow = new Date().toLocaleTimeString();
+            updateCharts(timeNow, data.suhu, data.kelembapan, data.cahaya);
+            updateTable(timeNow, data.suhu, data.kelembapan, data.cahaya);
         }
+    });
 
-        // 4. CHART CONFIG
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Suhu (°C)',
-                    data: [],
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: { responsive: true, scales: { x: { display: false } } }
-        });
-
-        function updateChart(temp) {
-            if(chart.data.labels.length > 15) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-            chart.data.labels.push(new Date().toLocaleTimeString());
-            chart.data.datasets[0].data.push(temp);
-            chart.update();
+    function updateCharts(time, t, h, l) {
+        if (chartTH.data.labels.length > 15) {
+            chartTH.data.labels.shift(); chartTH.data.datasets[0].data.shift(); chartTH.data.datasets[1].data.shift();
+            chartLux.data.labels.shift(); chartLux.data.datasets[0].data.shift();
         }
-    </script>
+        chartTH.data.labels.push(time); chartTH.data.datasets[0].data.push(t); chartTH.data.datasets[1].data.push(h);
+        chartLux.data.labels.push(time); chartLux.data.datasets[0].data.push(l);
+        chartTH.update(); chartLux.update();
+    }
+
+    function updateTable(time, t, h, l) {
+        const tbody = document.getElementById("tableBody");
+        const row = `<tr><td>${time}</td><td>${t}</td><td>${h}</td><td>${l}</td></tr>`;
+        tbody.insertAdjacentHTML('afterbegin', row);
+        if (tbody.children.length > 15) tbody.removeChild(tbody.lastChild);
+    }
+
+    function resetLocalLog() { document.getElementById("tableBody").innerHTML = ""; }
+    function updateControl(command) { db.ref("monitoring/control").set(command); }
+    function setIntervalFirebase() {
+        const val = document.getElementById("inputInterval").value;
+        if (val > 0) db.ref("monitoring/interval").set(parseInt(val));
+    }
+</script>
 </body>
 </html>
